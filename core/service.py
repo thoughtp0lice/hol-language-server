@@ -8,8 +8,7 @@ from dataclasses import dataclass
 from core import util
 from core.config import Settings, expand_root_paths
 from core.database import Database, Dependency
-from core.parser import DEFINITION_TYPE_NAMES, OCAML_KEYWORDS, Definition, Module
-from core.selection import skip_comments
+from core.parser import DEFINITION_TYPE_NAMES, OCAML_KEYWORDS, Definition, Module, skip_comments
 from core.text import CHAR_LITERAL, Position, Range, TextDoc
 
 _IMPORT_RE = re.compile(r'^\s*(?:needs|loads|loadt)\s*"(.*?)"')
@@ -215,7 +214,8 @@ class HolLanguageService:
 
     def find_symbols(self, name: str, deps: set[str] | None = None) -> list[SymbolInfo]:
         """Definitions and modules of the name in all indexed files (or the
-        given files only). The name may carry module qualifiers."""
+        given files only). The name may carry module qualifiers. Exact
+        full-name matches come first, suffix matches after."""
         names = name.split(".")
         last = names[-1]
         defs, mods = self.database.find_all_by_name(last, deps)
@@ -227,9 +227,13 @@ class HolLanguageService:
                 or item.full_name.endswith("." + name)
             )
 
-        return [module_symbol(m) for m in mods if qualified(m)] + [
+        symbols = [module_symbol(m) for m in mods if qualified(m)] + [
             definition_symbol(d) for d in defs if qualified(d)
         ]
+        if len(names) > 1:
+            # Stable: index order within each rank.
+            symbols.sort(key=lambda s: s.full_name != name)
+        return symbols
 
     def hover(self, doc: TextDoc, position: Position) -> tuple[str, Range | None] | None:
         """The statement of the definition at the position, else None."""

@@ -164,6 +164,23 @@ def test_symbols():
     assert [os.path.basename(s.path) for s in service.find_symbols("kfun2")] == ["kernel.ml"]
 
 
+def test_find_symbols_ranks_exact_full_name_first(tmp_path: Path):
+    first = tmp_path / "first.ml"
+    first.write_text(
+        "module A = struct\nmodule Mod = struct\nlet foo = 1;;\nend\nend\n",
+        encoding="utf-8",
+    )
+    second = tmp_path / "second.ml"
+    second.write_text("module Mod = struct\nlet foo = 2;;\nend\n", encoding="utf-8")
+    service = example_service()
+    service.index(str(first), True)
+    service.index(str(second), True)
+    assert [s.full_name for s in service.find_symbols("Mod.foo")] == [
+        "Mod.foo",
+        "A.Mod.foo",
+    ]
+
+
 def test_indexing_a_workspace():
     service = example_service()
     assert [dep.name for dep in service.index_workspace()] == ["missing.ml"]

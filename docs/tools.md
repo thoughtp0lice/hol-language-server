@@ -1,6 +1,18 @@
 # MCP tool
 
-The server exposes one tool. Conventions (read-only, name lookup, paths, indexing): [README](../README.md).
+The server exposes one tool. Setup: [README](../README.md).
+
+## Conventions
+
+- The tool is read-only and takes names, not cursor positions. Results carry statements and sources, not file locations.
+- Files may be absolute or relative to the workspace.
+- At startup the server indexes the core HOL Light files and the workspace; calls wait for that.
+- It refuses to start without a HOL Light directory (one with `hol.ml`) or with a root path that does not expand.
+- It logs a warning for each load in the workspace it cannot find and each statement the parser skips.
+- Every call re-indexes the file it touches and its dependencies when they changed on disk.
+
+## Tools
+
 
 - `definition_source`
   - Source of a tactic's (or any value's) definition and the theorems and definitions it uses, resolved as Go to Definition. References that carry nothing beyond a name are left out.

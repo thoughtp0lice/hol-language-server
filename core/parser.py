@@ -45,6 +45,25 @@ def _find_line_number(line_starts: list[int], pos: int) -> int:
     return bisect_right(line_starts, pos) - 1
 
 
+def skip_comments(text: str, pos: int) -> int:
+    """End offset of the comment starting at pos. Assumes pos is at `(*`."""
+    n = len(text)
+    level = 1
+    i = pos + 1
+    while i < n:
+        i = text.find("*", i + 1)
+        if i < 0:
+            return n
+        if text[i - 1] == "(":
+            level += 1
+        elif i + 1 < n and text[i + 1] == ")":
+            level -= 1
+            if level <= 0:
+                return i + 2
+            i += 1
+    return n
+
+
 class Definition:
     def __init__(self, name: str, def_type: DefinitionType, content: str, module: Module | None,
                  offset: int, file_path: str, position: Position) -> None:
@@ -822,6 +841,117 @@ class Parser:
         self.reset_state(saved)
         return result
 
+    def _add_definition(self, uri: str, definitions: list[Definition],
+                        module_stack: list[Module], name: str, def_type: DefinitionType,
+                        content: str, offset: int, position: Position) -> None:
+        module = module_stack[-1] if module_stack else None
+        definitions.append(
+            Definition(name, def_type, content, module, offset, uri, position)
+        )
+
+    def _skip_while_eq(self, value: str) -> None:
+        while self.peek_skip_comments().value == value:
+            self.next_token()
+
+    def _parse_binding(self, uri: str, definitions: list[Definition],
+                       module_stack: list[Module]) -> None:
+        """Classifies one binding of the current `let`."""
+        lhs = self._parse_let_binding_lhs()
+        if len(lhs) == 1 and self.next_skip_comments().value == "=":
+            name = lhs[0].name_token.get_value(self.text)
+            pos = lhs[0].name_token.start_pos
+            position = lhs[0].name_token.get_start_position(self._line_starts)
+            self._skip_while_eq("(")
+            token = self.next_skip_comments()
+            # `time f x` evaluates `f x` (e.g., `let TH = time prove(...)`).
+            if token.value == "time":
+                self._skip_while_eq("(")
+                token = self.next_skip_comments()
+            if token.type == TokenType.term:
+                self._add_definition(
+                    uri, definitions, module_stack,
+                    name, DefinitionType.term,
+                    token.get_value(self.text)[1:-1], pos, position,
+                )
+                return
+            value = token.value or ""
+            if self._theorem_re.match(value):
+                self._skip_while_eq("(")
+                # Accept terms, strings, and identifiers.
+                token = self.next_skip_comments()
+                if token.type in (TokenType.term, TokenType.string):
+                    text = token.get_value(self.text)[1:-1]
+                    self._add_definition(uri, definitions, module_stack,
+                                         name, DefinitionType.theorem, text, pos, position)
+                    return
+                if token.type == TokenType.identifier:
+                    self._add_definition(
+                        uri, definitions, module_stack,
+                        name, DefinitionType.theorem,
+                        token.get_value(self.text), pos, position,
+                    )
+                    return
+                if token.type != TokenType.statement_separator:
+                    # `;;` here is an alias for a theorem-producing function.
+                    self._report(f"Unparsed theorem: {name}", pos, uri)
+            elif self._definition_re.match(value):
+                self._skip_while_eq("(")
+                token = self.next_skip_comments()
+                if token.type in (TokenType.term, TokenType.string):
+                    text = token.get_value(self.text)[1:-1]
+                    self._add_definition(uri, definitions, module_stack,
+                                         name, DefinitionType.definition, text, pos, position)
+                    return
+                if token.type == TokenType.identifier:
+                    self._add_definition(
+                        uri, definitions, module_stack,
+                        name, DefinitionType.definition,
+                        token.get_value(self.text), pos, position,
+                    )
+                    return
+                if token.type != TokenType.statement_separator:
+                    self._report(f"Unparsed definition: {name}", pos, uri)
+            elif self._def_other_re.match(value):
+                # Skip the next token.
+                self.next_token()
+                self._skip_while_eq("(")
+                token = self.next_skip_comments()
+                if token.type in (TokenType.term, TokenType.string):
+                    text = token.get_value(self.text)[1:-1]
+                    self._add_definition(uri, definitions, module_stack,
+                                         name, DefinitionType.definition, text, pos, position)
+                    return
+                if token.type == TokenType.identifier:
+                    self._add_definition(
+                        uri, definitions, module_stack,
+                        name, DefinitionType.definition,
+                        token.get_value(self.text), pos, position,
+                    )
+                    return
+                self._report(f"Unparsed definition(2): {name}", pos, uri)
+        # Default case.
+        for binding in lhs:
+            name = binding.name_token.get_value(self.text)
+            pos = binding.name_token.start_pos
+            position = binding.name_token.get_start_position(self._line_starts)
+            self._add_definition(uri, definitions, module_stack,
+                                 name, DefinitionType.other, binding.type, pos, position)
+
+    def _parse_let_statement(self, uri: str, definitions: list[Definition],
+                             module_stack: list[Module]) -> None:
+        """`let` is already consumed. Records the bindings it defines."""
+        if self.peek_skip_comments().value == "rec":
+            self.next_token()
+        # `let a = ... and b = ...`: states after each top-level `and`.
+        and_states = self._find_top_level_ands()
+        self._parse_binding(uri, definitions, module_stack)
+        for and_state in and_states:
+            self.reset_state(and_state)
+            try:
+                self._parse_binding(uri, definitions, module_stack)
+            except ParserError as err:
+                self._report(f"Error: {err}", err.token, uri)
+
     def parse(self, uri: str) -> ParseResult:
         self.pos = 0
         self._cur = None
@@ -831,17 +961,6 @@ class Parser:
         dependencies: list[Dependency] = []
         modules: list[Module] = []
         module_stack: list[Module] = []
-
-        def add_definition(name: str, def_type: DefinitionType, content: str, offset: int,
-                           position: Position) -> None:
-            module = module_stack[-1] if module_stack else None
-            definitions.append(
-                Definition(name, def_type, content, module, offset, uri, position)
-            )
-
-        def skip_while_eq(value: str) -> None:
-            while self.peek_skip_comments().value == value:
-                self.next_token()
 
         while self.peek().type != TokenType.eof:
             # Save and restore the state at the end of the loop: parsing may
@@ -856,92 +975,7 @@ class Parser:
 
             try:
                 if statement_value == "let":
-                    if self.peek_skip_comments().value == "rec":
-                        self.next_token()
-                    # `let a = ... and b = ...`: states after each top-level `and`.
-                    and_states = self._find_top_level_ands()
-
-                    def parse_binding() -> None:
-                        lhs = self._parse_let_binding_lhs()
-                        if len(lhs) == 1 and self.next_skip_comments().value == "=":
-                            name = lhs[0].name_token.get_value(self.text)
-                            pos = lhs[0].name_token.start_pos
-                            position = lhs[0].name_token.get_start_position(self._line_starts)
-                            skip_while_eq("(")
-                            token = self.next_skip_comments()
-                            # `time f x` evaluates `f x` (e.g., `let TH = time prove(...)`).
-                            if token.value == "time":
-                                skip_while_eq("(")
-                                token = self.next_skip_comments()
-                            if token.type == TokenType.term:
-                                add_definition(
-                                    name, DefinitionType.term,
-                                    token.get_value(self.text)[1:-1], pos, position,
-                                )
-                                return
-                            value = token.value or ""
-                            if self._theorem_re.match(value):
-                                skip_while_eq("(")
-                                # Accept terms, strings, and identifiers.
-                                token = self.next_skip_comments()
-                                if token.type in (TokenType.term, TokenType.string):
-                                    text = token.get_value(self.text)[1:-1]
-                                    add_definition(name, DefinitionType.theorem, text, pos, position)
-                                    return
-                                if token.type == TokenType.identifier:
-                                    add_definition(
-                                        name, DefinitionType.theorem,
-                                        token.get_value(self.text), pos, position,
-                                    )
-                                    return
-                                if token.type != TokenType.statement_separator:
-                                    # `;;` here is an alias for a theorem-producing function.
-                                    self._report(f"Unparsed theorem: {name}", pos, uri)
-                            elif self._definition_re.match(value):
-                                skip_while_eq("(")
-                                token = self.next_skip_comments()
-                                if token.type in (TokenType.term, TokenType.string):
-                                    text = token.get_value(self.text)[1:-1]
-                                    add_definition(name, DefinitionType.definition, text, pos, position)
-                                    return
-                                if token.type == TokenType.identifier:
-                                    add_definition(
-                                        name, DefinitionType.definition,
-                                        token.get_value(self.text), pos, position,
-                                    )
-                                    return
-                                if token.type != TokenType.statement_separator:
-                                    self._report(f"Unparsed definition: {name}", pos, uri)
-                            elif self._def_other_re.match(value):
-                                # Skip the next token.
-                                self.next_token()
-                                skip_while_eq("(")
-                                token = self.next_skip_comments()
-                                if token.type in (TokenType.term, TokenType.string):
-                                    text = token.get_value(self.text)[1:-1]
-                                    add_definition(name, DefinitionType.definition, text, pos, position)
-                                    return
-                                if token.type == TokenType.identifier:
-                                    add_definition(
-                                        name, DefinitionType.definition,
-                                        token.get_value(self.text), pos, position,
-                                    )
-                                    return
-                                self._report(f"Unparsed definition(2): {name}", pos, uri)
-                        # Default case.
-                        for binding in lhs:
-                            name = binding.name_token.get_value(self.text)
-                            pos = binding.name_token.start_pos
-                            position = binding.name_token.get_start_position(self._line_starts)
-                            add_definition(name, DefinitionType.other, binding.type, pos, position)
-
-                    parse_binding()
-                    for and_state in and_states:
-                        self.reset_state(and_state)
-                        try:
-                            parse_binding()
-                        except ParserError as err:
-                            self._report(f"Error: {err}", err.token, uri)
+                    self._parse_let_statement(uri, definitions, module_stack)
                 elif statement_value == "module":
                     module_name_token = self._parse_module_definition()
                     if module_name_token is not None:
@@ -988,7 +1022,8 @@ class Parser:
                         and name_token.end_pos - name_token.start_pos <= 2000
                     ):
                         text = name_token.get_value(self.text)[1:-1]
-                        # Ignore multiline strings.
+                        # Ignore multiline strings: legal OCaml, but a path
+                        # with a newline never resolves to a file.
                         if "\n" not in text:
                             dependencies.append(
                                 Dependency(

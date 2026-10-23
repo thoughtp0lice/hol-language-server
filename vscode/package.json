@@ -1,0 +1,99 @@
+{
+  "name": "hol-language-server",
+  "displayName": "HOL Light static lookup",
+  "description": "Client for the hol-language-server language server: hover, Go to Definition, and symbols for HOL Light sources",
+  "version": "0.1.0",
+  "publisher": "local",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.82.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "main": "./extension.js",
+  "activationEvents": ["onLanguage:hol-light-ocaml"],
+  "contributes": {
+    "languages": [
+      {
+        "id": "hol-light-ocaml",
+        "aliases": [
+          "HOL Light"
+        ],
+        "extensions": [
+          ".hl",
+          ".ml"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "hol-light-term",
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "hol-light-term",
+        "scopeName": "source.hol-light-term",
+        "path": "./syntaxes/hol-light-term.tmLanguage.json"
+      },
+      {
+        "language": "hol-light-ocaml",
+        "scopeName": "source.hol-light-ocaml",
+        "path": "./syntaxes/hol-light-ocaml.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.hol-light-term": "hol-light-term",
+          "string.quoted.single.hol-light-term": "hol-light-term"
+        },
+        "tokenTypes": {
+          "string.quoted.single.hol-light-term": "other"
+        }
+      }
+    ],
+    "configuration": {
+      "title": "HOL Light static lookup",
+      "properties": {
+        "hol-light.languageServer.repository": {
+          "type": "string",
+          "default": "",
+          "description": "The hol-language-server checkout. The client runs its .venv/bin/python on its lsp_server.py."
+        },
+        "hol-light.path": {
+          "type": "string",
+          "description": "HOL Light directory (with hol.ml). Unset: $HOL_LIGHT_DIR of the editor process."
+        },
+        "hol-light.rootPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Where needs paths are searched. May contain {hol} and {workspace}. Unset: the server default."
+        },
+        "hol-light.autoIndex": {
+          "type": "boolean",
+          "description": "Index open documents. Unset: the server default."
+        },
+        "hol-light.indexWorkspace": {
+          "type": "boolean",
+          "description": "Index every HOL Light file of the workspace at startup. Unset: the server default."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "hol-light.languageServer.restart",
+        "title": "HOL Light: Restart Language Server"
+      }
+    ]
+  },
+  "scripts": {
+    "package": "vsce package --skip-license --allow-missing-repository"
+  },
+  "dependencies": {
+    "vscode-languageclient": "9.0.1"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "3.9.2"
+  }
+}

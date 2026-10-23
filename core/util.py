@@ -40,7 +40,7 @@ def read_dir(path: str) -> list[os.DirEntry[str]]:
 
 def read_text(path: str) -> str:
     """The file's text with its line endings. Bytes that are not UTF-8 are
-    replaced, as the TypeScript server's Node decoding did, with a warning."""
+    replaced, with a warning."""
     with open(path, "rb") as handle:
         data = handle.read()
     try:

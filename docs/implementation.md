@@ -17,19 +17,19 @@ The parser and index were checked against s2n-bignum and HOL Light by a corpus c
 - A request that arrives while the core HOL Light files are being indexed waits for indexing to finish.
 - Each definition records the whole item that defines it, from its `let` to the `;;` or the start of the next item. `definition_source` returns that text and the names it uses, leaving out names bound inside the item itself (parameters, `let ... in`, `fun`, match patterns).
 
-## Differences from the TypeScript server
+## Reported failures
 
-The parser and index read the same definitions. Failures that the TypeScript server skipped without a word are reported:
+No failure is skipped without a word:
 
-- No HOL Light directory, or one without `hol.ml`: the server stops (the MCP server at startup, the language server in `initialize`). The TypeScript server ran without the core HOL Light files, and every lookup of a HOL Light name answered that it was not indexed.
-- Loads that cannot be found: `unresolved_loads` in the MCP result when `file` is given, a startup warning for the workspace, and editor warnings. The TypeScript server returned no sign that definitions were missing.
-- Editor settings of the wrong type or with an unknown key, and root paths with an unknown or unset placeholder: an error. The TypeScript server kept the defaults or expanded the placeholder to an empty string.
+- No HOL Light directory, or one without `hol.ml`: the server stops (the MCP server at startup, the language server in `initialize`).
+- Loads that cannot be found: `unresolved_loads` in the MCP result when `file` is given, a startup warning for the workspace, and editor warnings.
+- Editor settings of the wrong type or with an unknown key, and root paths with an unknown or unset placeholder: an error.
 - A file or directory that cannot be read while indexing: an error instead of a skip.
-- Statements the parser skips or misreads, and files that are not valid UTF-8 (still decoded with replacement characters): a warning on stderr. The TypeScript server printed parser errors only in debug mode.
+- Statements the parser skips or misreads, and files that are not valid UTF-8 (still decoded with replacement characters): a warning on stderr.
 
 ## Layout
 
-- `core/`: the parser, index, and name-reference search, ported from the TypeScript server one module at a time. `service.py` is the API both servers use. Positions sit beside the MCP server's offsets; the parser computes both in one pass.
-- `server.py`: the MCP server entry point.
+- `core/`: the parser, index, and name-reference search. `service.py` is the API both servers use. Positions sit beside the MCP server's offsets; the parser computes both in one pass.
+- `mcp_server.py`: the MCP server entry point.
 - `lsp_server.py`: the LSP server entry point (pygls, stdio).
 - `tests/`: tests and example files. `examples/hol` is a minimal stand-in for a HOL Light directory.
