@@ -1,0 +1,58 @@
+[project]
+name = "hol-language-server"
+version = "0.1.0"
+description = "Static lookup for HOL Light sources: an MCP server and a language server over one parser and index"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "lsprotocol>=2025.0.0",
+    "mcp>=1.30.0,<2",
+    "pydantic>=2.14.1",
+    "pygls>=2.1.1",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbe
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
+ignore = ["I001"]
+
+[tool.pytest.ini_options]
+# The repository root on the path, the same as server.py and lsp_server.py
+# put their own directory there, so `core` imports; tests/ for the fixture paths.
+pythonpath = [".", "tests"]
+testpaths = ["tests"]
+
+[tool.pyright]
+include = ["."]
+# The same paths as [tool.pytest.ini_options].
+extraPaths = [".", "tests"]
+typeCheckingMode = "standard"
+reportUnusedCallResult = "none"
+# Every parameter and return carries a type.
+reportMissingParameterType = "error"
+reportUnknownParameterType = "error"
+reportMissingTypeArgument = "error"
+reportUnusedImport = "error"
+reportUnusedVariable = "error"
+reportUnnecessaryComparison = "error"
+reportUnnecessaryIsInstance = "error"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

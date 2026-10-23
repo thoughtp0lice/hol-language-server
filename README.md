@@ -6,14 +6,16 @@ This variant has two servers over one shared core: the MCP server `hol-light-sta
 
 ## Build
 
-There is none. The server is stdlib plus the repository's `mcp` dependency:
+There is no build step. The environment is managed by [uv](https://docs.astral.sh/uv/): Python 3.12 (pinned in `.python-version`) and the dependencies in `pyproject.toml`, locked in `uv.lock`.
 
 ```sh
-python server.py --hol-path /path/to/hol-light --workspace /path/to/s2n-bignum
-python -m pytest tests/   # unit tests plus MCP tests over stdio
+uv sync                  # creates .venv
+uv run python server.py --hol-path /path/to/hol-light --workspace /path/to/s2n-bignum
+uv run pytest            # unit tests plus MCP and LSP tests over stdio
+basedpyright --pythonpath .venv/bin/python   # type check, configured in pyproject.toml
 ```
 
-Requires Python 3.12 or later with the repository environment (`uv sync` at the repository root).
+The registrations below run `.venv/bin/python` directly, so they need `uv sync` once and no uv afterwards.
 
 ## Configuration
 
@@ -29,7 +31,7 @@ Full flag reference: [docs/configuration.md](docs/configuration.md).
 Register it with any stdio MCP client. With Claude Code:
 
 ```sh
-claude mcp add hol-light-static -- python /path/to/hol-language-server/server.py \
+claude mcp add hol-light-static -- /path/to/hol-language-server/.venv/bin/python /path/to/hol-language-server/server.py \
     --hol-path /path/to/hol-light --workspace /path/to/s2n-bignum
 ```
 
@@ -39,7 +41,7 @@ Or in a project's `.mcp.json`:
 {
   "mcpServers": {
     "hol-light-static": {
-      "command": "python",
+      "command": "/path/to/hol-language-server/.venv/bin/python",
       "args": ["/path/to/hol-language-server/server.py",
                "--hol-path", "/path/to/hol-light",
                "--workspace", "/path/to/s2n-bignum"]
@@ -48,7 +50,7 @@ Or in a project's `.mcp.json`:
 }
 ```
 
-In this repository's description pipeline the server is registered as `hol-light-static`. See the main [README](../../README.md) for that registration.
+The s2n-bignum-hol-light-llm description pipeline registers it as `hol-light-static`.
 
 All tools are read-only and take names, not cursor positions. Results carry statements and sources, not file locations. Files may be absolute or relative to the workspace. At startup the server indexes the core HOL Light files and the workspace; tools wait for that. It refuses to start without a HOL Light directory (one with `hol.ml`) or with a root path that does not expand, and logs a warning for each load in the workspace it cannot find and each statement the parser skips. Every call re-indexes the file it touches and its dependencies when they changed on disk.
 
@@ -57,7 +59,7 @@ Tool: `definition_source`, the source of a named definition and the names it is 
 ## Language server
 
 ```sh
-python lsp_server.py --hol-path /path/to/hol-light --workspace /path/to/s2n-bignum
+uv run python lsp_server.py --hol-path /path/to/hol-light --workspace /path/to/s2n-bignum
 ```
 
 It speaks LSP over stdio and takes the same flags as the MCP server. Settings in `initializationOptions` (either `{"hol-light": {...}}` or the options themselves) override the flags: `path`, `rootPaths`, `autoIndex`, `indexWorkspace`. Without either, the path is `$HOL_LIGHT_DIR`; without a workspace flag, the workspace is the client's first workspace folder. An unknown setting, a value of the wrong type, or no HOL Light directory fails `initialize` with the reason. Loads that cannot be found are shown as warning messages. Full reference: [docs/lsp.md](docs/lsp.md).
@@ -68,7 +70,7 @@ With Emacs eglot, for `.ml` buffers:
 
 ```elisp
 (add-to-list 'eglot-server-programs
-             '(tuareg-mode . ("python" "/path/to/hol-language-server/lsp_server.py"
+             '(tuareg-mode . ("/path/to/hol-language-server/.venv/bin/python" "/path/to/hol-language-server/lsp_server.py"
                               "--hol-path" "/path/to/hol-light"
                               "--workspace" "/path/to/s2n-bignum")))
 ```
