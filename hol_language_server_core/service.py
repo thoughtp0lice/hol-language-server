@@ -11,8 +11,6 @@ from hol_language_server_core.database import Database, Dependency
 from hol_language_server_core.parser import DEFINITION_TYPE_NAMES, OCAML_KEYWORDS, Definition, Module, skip_comments
 from hol_language_server_core.text import CHAR_LITERAL, Position, Range, TextDoc
 
-_IMPORT_RE = re.compile(r'^\s*(?:needs|loads|loadt)\s*"(.*?)"')
-
 
 @dataclass
 class SymbolInfo:
@@ -185,7 +183,7 @@ class HolLanguageService:
         """Index the file and its dependencies. Returns unresolved ones."""
         doc = self.get_document(file_path)
         return self.database.index_document_with_dependencies(
-            doc, self._settings.hol_path, self.root_paths, full
+            doc, self._settings.hol_path, self.root_paths, full, self._settings.custom_commands
         )
 
     def index_workspace(self) -> list[Dependency]:
@@ -255,7 +253,8 @@ class HolLanguageService:
         definitions and modules the word at the position names."""
         if position.line < 0 or position.line >= doc.line_count:
             return []
-        m = _IMPORT_RE.match(doc.line_at(position.line))
+        imports = ["needs", "loads", "loadt", *self._settings.custom_commands.imports]
+        m = re.match(r'^\s*(?:' + "|".join(imports) + r')\s*"(.*?)"', doc.line_at(position.line))
         if m:
             text = m.group(0)
             if text.find('"') <= position.character <= text.rfind('"'):

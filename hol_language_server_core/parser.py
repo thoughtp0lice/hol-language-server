@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import re
 from bisect import bisect_right
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum
 
 from hol_language_server_core.text import CHAR_LITERAL, Location, Position, location
@@ -152,8 +152,19 @@ class ParseResult:
     global_module: Module
 
 
-def parse_text(text: str, file_path: str) -> ParseResult:
-    return Parser(text).parse(file_path)
+@dataclass
+class CustomCommands:
+    # A project's own command names, read like the built-in ones they stand for.
+    # Import commands (like `needs`)
+    imports: list[str] = field(default_factory=list)
+    # Theorem commands (like `prove`)
+    theorems: list[str] = field(default_factory=list)
+    # Constant definition commands (like `new_definition`)
+    definitions: list[str] = field(default_factory=list)
+
+
+def parse_text(text: str, file_path: str, custom: CustomCommands) -> ParseResult:
+    return Parser(text, custom).parse(file_path)
 
 
 class TokenType(IntEnum):
@@ -243,7 +254,7 @@ class _ParserState:
 
 
 class Parser:
-    def __init__(self, text: str) -> None:
+    def __init__(self, text: str, custom: CustomCommands) -> None:
         self.text = text
         self.eof_token = Token(TokenType.eof, len(text), len(text), "")
         self._line_starts: list[int] = []
@@ -257,9 +268,9 @@ class Parser:
         def mk(words: list[str]) -> re.Pattern[str]:
             return re.compile("^(?:" + "|".join(words) + ")$")
 
-        self._import_re = mk(["needs", "loads", "loadt"])
-        self._theorem_re = mk(["prove", "VECTOR_ARITH", "ARITH_RULE", "REAL_ARITH"])
-        self._definition_re = mk(["new_definition", "new_basic_definition", "define"])
+        self._import_re = mk(["needs", "loads", "loadt", *custom.imports])
+        self._theorem_re = mk(["prove", "VECTOR_ARITH", "ARITH_RULE", "REAL_ARITH", *custom.theorems])
+        self._definition_re = mk(["new_definition", "new_basic_definition", "define", *custom.definitions])
         self._def_other_re = mk(["new_recursive_definition"])
 
         self.pos = 0

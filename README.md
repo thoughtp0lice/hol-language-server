@@ -23,6 +23,8 @@ The server takes the non-REPL settings of vscode-hol-light as flags. Most setups
 - `--hol-path`: HOL Light directory (with `hol.ml`).
 - `--workspace`: workspace root. For s2n-bignum, whose proofs use paths like `needs "arm/proofs/base.ml"`, point it at the s2n-bignum checkout.
 
+If your project wraps `needs`, `prove` or `new_definition` in commands of its own, name them with `--custom-import`, `--custom-theorem` and `--custom-definition`.
+
 Full flag reference: [docs/configuration.md](docs/configuration.md).
 
 ## MCP server

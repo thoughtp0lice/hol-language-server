@@ -16,6 +16,13 @@ Both servers take the same flags: the MCP server `hol-light-code-mcp` and the la
   - The first directory that has the file wins.
   - `loads "..."` paths ignore this list. They are always under the HOL Light directory.
   - Any other `{...}`, one whose value is not set, or an empty path stops the server.
+- `--custom-import`, `--custom-theorem`, `--custom-definition`: your project's own command names. Repeat each for several.
+  - Use them when a project wraps the built-in commands, for example `let my_prove (t, tac) = prove (t, tac)`.
+  - `--custom-import NAME`: `NAME "file.ml"` loads a file, like `needs`. It is searched the same way as `needs`.
+  - `--custom-theorem NAME`: `let X = NAME ...` is a theorem with a statement, like `prove`.
+  - `--custom-definition NAME`: `let X = NAME ...` is a constant definition, like `new_definition`.
+  - Without them, these definitions are read as plain values with no statement, and those loads are not followed.
+  - Each name must be a plain OCaml name (letters, digits, `_`, `'`). Anything else stops the server.
 - `--no-index-workspace`: do not read every `.ml`/`.hl` file of the workspace at startup.
   - By default they are all read.
   - Reading them matters: a file can use definitions it never loads itself, because the file that loads it loaded them first. Those are found only when the loading file was read.

@@ -5,6 +5,8 @@ import os
 import re
 from dataclasses import dataclass, field
 
+from hol_language_server_core.parser import CustomCommands
+
 DEBUG = bool(os.environ.get("HOL_LS_DEBUG"))
 
 DEFAULT_ROOT_PATHS = [".", "{hol}", "{workspace}"]
@@ -23,10 +25,24 @@ class Settings:
     # Index all HOL Light files of the workspace. Needed for definitions
     # which a file sees only because the file which loads it loaded them first.
     index_workspace: bool = False
+    # The project's own import, theorem and definition commands.
+    custom_commands: CustomCommands = field(default_factory=CustomCommands)
 
 
 # The editor settings and the type each must have.
-_OPTION_TYPES = {"path": str, "rootPaths": list, "autoIndex": bool, "indexWorkspace": bool}
+_OPTION_TYPES = {"path": str, "rootPaths": list, "autoIndex": bool, "indexWorkspace": bool,
+                 "customImports": list, "customTheorems": list, "customDefinitions": list}
+
+# A command name is an OCaml identifier, since the parser matches it as one.
+_COMMAND_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_']*")
+
+
+def _command_names(names: list[object], what: str) -> list[str]:
+    """The names, checked to be identifiers. Raises ValueError otherwise."""
+    for name in names:
+        if not isinstance(name, str) or not _COMMAND_NAME.fullmatch(name):
+            raise ValueError(f"{what}: {name!r} is not an OCaml identifier")
+    return [str(name) for name in names]
 
 
 def default_settings() -> Settings:
@@ -40,6 +56,12 @@ def parse_settings(argv: list[str] | None, description: str | None) -> tuple[Set
     parser.add_argument("--root", action="append", default=None)
     parser.add_argument("--workspace", default=None)
     parser.add_argument("--no-index-workspace", action="store_true")
+    parser.add_argument("--custom-import", action="append", default=[],
+                        help="a command that loads a file like `needs` (repeatable)")
+    parser.add_argument("--custom-theorem", action="append", default=[],
+                        help="a command that proves a theorem like `prove` (repeatable)")
+    parser.add_argument("--custom-definition", action="append", default=[],
+                        help="a command that defines a constant like `new_definition` (repeatable)")
     args = parser.parse_args(argv)
     settings = default_settings()
     settings.hol_path = args.hol_path or os.environ.get("HOL_LIGHT_DIR", "")
@@ -47,6 +69,11 @@ def parse_settings(argv: list[str] | None, description: str | None) -> tuple[Set
     if args.root:
         settings.root_paths = args.root
     settings.index_workspace = not args.no_index_workspace
+    settings.custom_commands = CustomCommands(
+        imports=_command_names(args.custom_import, "--custom-import"),
+        theorems=_command_names(args.custom_theorem, "--custom-theorem"),
+        definitions=_command_names(args.custom_definition, "--custom-definition"),
+    )
     return settings, args.workspace is not None
 
 
@@ -72,6 +99,14 @@ def settings_from_options(options: object, base: Settings) -> Settings:
         workspace=base.workspace,
         auto_index=options.get("autoIndex", base.auto_index),
         index_workspace=options.get("indexWorkspace", base.index_workspace),
+        custom_commands=CustomCommands(
+            imports=_command_names(options.get("customImports", base.custom_commands.imports),
+                                   "hol-light setting customImports"),
+            theorems=_command_names(options.get("customTheorems", base.custom_commands.theorems),
+                                    "hol-light setting customTheorems"),
+            definitions=_command_names(options.get("customDefinitions", base.custom_commands.definitions),
+                                       "hol-light setting customDefinitions"),
+        ),
     )
 
 

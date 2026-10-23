@@ -25,6 +25,7 @@ The language server `hol-language-server` gives an editor lookups over HOL Light
   - `rootPaths` (list of text): where `needs` paths are searched.
   - `autoIndex` (true/false): read each file as it is opened or edited. Default true.
   - `indexWorkspace` (true/false): read every `.ml`/`.hl` file of the workspace at startup. Default true.
+  - `customImports`, `customTheorems`, `customDefinitions` (lists of text): your project's own command names, the same as the `--custom-*` flags.
   - Any other setting, or a value of the wrong type, stops startup with the reason.
 - Defaults when nothing is set.
   - HOL Light directory: `$HOL_LIGHT_DIR`.

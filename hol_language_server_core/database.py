@@ -9,7 +9,7 @@ from collections.abc import Callable
 
 from hol_language_server_core import util
 from hol_language_server_core.config import DEBUG
-from hol_language_server_core.parser import Definition, Module, OpenDecl, ParseResult, parse_text
+from hol_language_server_core.parser import CustomCommands, Definition, Module, OpenDecl, ParseResult, parse_text
 from hol_language_server_core.parser import Dependency as ParsedDependency
 from hol_language_server_core.text import Location, Position, TextDoc, location
 
@@ -152,15 +152,15 @@ class Database:
         remove(self._module_index, file.modules)
         del self._file_index[file_path]
 
-    def index_file(self, file_path: str, hol_path: str,
-                   root_paths: list[str] | None) -> tuple[bool, list[Dependency]]:
+    def index_file(self, file_path: str, hol_path: str, root_paths: list[str] | None,
+                   custom: CustomCommands) -> tuple[bool, list[Dependency]]:
         """Index the file when new or modified. Returns whether it was
         indexed and its dependencies (existing ones when untouched)."""
         file = self._file_index.get(file_path)
         mtime = os.stat(file_path).st_mtime
         known = file.mtime if file is not None and file.mtime is not None else -1
         if mtime > known:
-            result = parse_text(util.read_text(file_path), file_path)
+            result = parse_text(util.read_text(file_path), file_path, custom)
             if root_paths is None:
                 deps = []
             else:
@@ -347,15 +347,15 @@ class Database:
             self.resolve_module_name(word, open_modules, deps),
         )
 
-    def index_base_hol_light_files(self, hol_path: str) -> None:
+    def index_base_hol_light_files(self, hol_path: str, custom: CustomCommands) -> None:
         """Index the core HOL Light files once. The HOL Light path is fixed
         for the process, so a later call reuses the first. Raises ValueError
         when hol_path is not a HOL Light directory."""
         if not self._base_hol_light_indexed:
-            self._do_index_base_hol_light_files(hol_path)
+            self._do_index_base_hol_light_files(hol_path, custom)
             self._base_hol_light_indexed = True
 
-    def _do_index_base_hol_light_files(self, hol_path: str) -> None:
+    def _do_index_base_hol_light_files(self, hol_path: str, custom: CustomCommands) -> None:
         if DEBUG:
             logger.error("Indexing Base HOL Light files: %s", hol_path)
         if not hol_path:
@@ -369,22 +369,22 @@ class Database:
                 file_path = os.path.join(hol_path, entry.name)
                 # Add before indexing the file.
                 self._base_hol_light_files.add(file_path)
-                indexed, _ = self.index_file(file_path, hol_path, None)
+                indexed, _ = self.index_file(file_path, hol_path, None, custom)
                 if indexed and DEBUG:
                     logger.error("Indexed: %s", file_path)
         if DEBUG:
             logger.error("Done indexing HOL Light base files")
 
     def index_document_with_dependencies(self, document: TextDoc, hol_path: str, root_paths: list[str],
-                                         full_index: bool) -> list[Dependency]:
+                                         full_index: bool, custom: CustomCommands) -> list[Dependency]:
         """Index the document and its dependencies. Returns the unresolved
         dependencies of the document and of its indexed dependencies."""
         # Index HOL Light files first (no-op when already indexed).
-        self.index_base_hol_light_files(hol_path)
+        self.index_base_hol_light_files(hol_path, custom)
         doc_path = document.path
         if DEBUG:
             logger.error("Indexing: %s", doc_path)
-        result = parse_text(document.text, doc_path)
+        result = parse_text(document.text, doc_path, custom)
         doc_dep_names = {dep.name: dep for dep in result.dependencies}
         old_file = self._file_index.get(doc_path)
         old_names = [dep.name for dep in old_file.dependencies] if old_file is not None else []
@@ -433,7 +433,7 @@ class Database:
             known_file = self._file_index.get(dep_path)
             known_deps = known_file.dependencies if known_file is not None else []
             old_paths = util.filter_map(known_deps, lambda dep: dep.path)
-            indexed, deps = self.index_file(dep_path, hol_path, root_paths)
+            indexed, deps = self.index_file(dep_path, hol_path, root_paths, custom)
             if indexed and DEBUG:
                 logger.error("Indexed: %s", dep_path)
             unresolved.extend(dep for dep in deps if not dep.is_resolved)

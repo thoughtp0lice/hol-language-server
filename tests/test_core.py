@@ -9,6 +9,7 @@ from hol_server_paths import EXAMPLES, HOL, PROJECT
 from hol_language_server_core.config import default_settings
 from hol_language_server_core.database import Database
 from hol_language_server_core.parser import (
+    CustomCommands,
     DefinitionType,
     OpenDecl,
     Parser,
@@ -28,7 +29,7 @@ def read_doc(*parts: str) -> TextDoc:
 
 def test_parser_definitions_hl():
     doc = read_doc("definitions.hl")
-    result = parse_text(doc.text, doc.path)
+    result = parse_text(doc.text, doc.path, CustomCommands())
     assert len(result.definitions) == 36
     assert len(result.dependencies) == 1
     assert len(result.modules) == 0
@@ -41,7 +42,7 @@ def test_parser_definitions_hl():
 
 def test_parser_modules_hl():
     doc = read_doc("modules.hl")
-    result = parse_text(doc.text, doc.path)
+    result = parse_text(doc.text, doc.path, CustomCommands())
     # vscode-hol-light finds 5: newMap1 and exists1 follow a `type`
     # item which is not ended by `;;`.
     assert len(result.definitions) == 7
@@ -56,11 +57,20 @@ def test_parser_modules_hl():
     assert all(mods[i + 1].start > mods[i].start for i in range(len(mods) - 1))
 
 
-def parse_names(text: str) -> list[str]:
+def parse_names(text: str, custom: CustomCommands | None = None) -> list[str]:
     return [
         f"{d.name}:{DefinitionType(d.def_type).name}:{d.content}"
-        for d in parse_text(text, "x.ml").definitions
+        for d in parse_text(text, "x.ml", custom or CustomCommands()).definitions
     ]
+
+
+def test_custom_commands_read_like_the_built_in_ones():
+    text = "my_needs \"lib.ml\";;\nlet A = my_prove(`p`, TAC);;\nlet d = my_define `c = 1`;;\n"
+    custom = CustomCommands(imports=["my_needs"], theorems=["my_prove"], definitions=["my_define"])
+    assert parse_names(text) == ["A:other:", "d:other:"]
+    assert parse_names(text, custom) == ["A:theorem:p", "d:definition:c = 1"]
+    assert [d.name for d in parse_text(text, "x.ml", custom).dependencies] == ["lib.ml"]
+    assert parse_text(text, "x.ml", CustomCommands()).dependencies == []
 
 
 def test_character_literals_do_not_start_strings():
@@ -95,7 +105,7 @@ def test_operator_bindings_are_indexed():
 
 def test_numeric_literals_are_not_identifiers():
     tokens = []
-    parser = Parser("[0x48; 0x8b; 1_000; 2.5e3]")
+    parser = Parser("[0x48; 0x8b; 1_000; 2.5e3]", CustomCommands())
     token = parser.next_token()
     while token.type != TokenType.eof:
         if token.type == TokenType.identifier:
@@ -107,7 +117,7 @@ def test_numeric_literals_are_not_identifiers():
 def test_database_definitions_hl_and_dependencies():
     doc = read_doc("definitions.hl")
     database = Database()
-    database.index_document_with_dependencies(doc, HOL, ["."], True)
+    database.index_document_with_dependencies(doc, HOL, ["."], True, CustomCommands())
     dep_path = os.path.join(EXAMPLES, "modules.hl")
     examples = {doc.path, dep_path}
     # 38 in vscode-hol-light (see modules.hl above).
@@ -189,14 +199,14 @@ def test_indexing_a_workspace():
 
 def test_base_indexing_refuses_a_missing_or_wrong_hol_light_directory(tmp_path: Path):
     with pytest.raises(ValueError, match="No HOL Light directory"):
-        Database().index_base_hol_light_files("")
+        Database().index_base_hol_light_files("", CustomCommands())
     with pytest.raises(ValueError, match="no hol.ml"):
-        Database().index_base_hol_light_files(str(tmp_path))
+        Database().index_base_hol_light_files(str(tmp_path), CustomCommands())
 
 
 def test_parser_warns_about_what_it_skips(caplog: pytest.LogCaptureFixture):
     with caplog.at_level(logging.WARNING, logger="hol_language_server_core.parser"):
-        parse_text("open 5;;\n", "x.ml")
+        parse_text("open 5;;\n", "x.ml", CustomCommands())
     assert [r.getMessage() for r in caplog.records] == ["Error: identifier expected x.ml:1:6"]
 
 

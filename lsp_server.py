@@ -114,8 +114,9 @@ def create_server(service: HolLanguageService, settings: Settings,
         settings.root_paths = updated.root_paths
         settings.auto_index = updated.auto_index
         settings.index_workspace = updated.index_workspace
+        settings.custom_commands = updated.custom_commands
         # Here rather than in initialized, so a bad directory or root path fails initialize.
-        service.database.index_base_hol_light_files(settings.hol_path)
+        service.database.index_base_hol_light_files(settings.hol_path, settings.custom_commands)
         expand_root_paths(settings)
 
     @server.feature(lsp.INITIALIZED)

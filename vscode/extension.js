@@ -6,7 +6,10 @@ const { LanguageClient } = require("vscode-languageclient/node");
 
 // The settings lsp_server.py accepts. Only the ones the user set are sent,
 // so the server keeps its own defaults for the rest.
-const SERVER_SETTINGS = ["path", "rootPaths", "autoIndex", "indexWorkspace"];
+const SERVER_SETTINGS = [
+  "path", "rootPaths", "autoIndex", "indexWorkspace",
+  "customImports", "customTheorems", "customDefinitions",
+];
 
 let client;
 

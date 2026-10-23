@@ -193,7 +193,7 @@ def main(argv: list[str] | None = None) -> None:
     service = HolLanguageService(settings)
     # Index core HOL Light, then (unless disabled) every workspace file.
     # A bad HOL Light directory or root path stops the server here.
-    service.database.index_base_hol_light_files(settings.hol_path)
+    service.database.index_base_hol_light_files(settings.hol_path, settings.custom_commands)
     expand_root_paths(settings)
     if settings.index_workspace:
         unresolved = service.index_workspace()

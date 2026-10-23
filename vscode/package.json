@@ -74,6 +74,27 @@
           "type": "boolean",
           "description": "Index open documents. Unset: the server default."
         },
+        "hol-light.customImports": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Your project's own command names. Each one is read as a command that loads a file, like needs."
+        },
+        "hol-light.customTheorems": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Your project's own command names. Each one is read as a command that proves a theorem, like prove."
+        },
+        "hol-light.customDefinitions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Your project's own command names. Each one is read as a command that defines a constant, like new_definition."
+        },
         "hol-light.indexWorkspace": {
           "type": "boolean",
           "description": "Index every HOL Light file of the workspace at startup. Unset: the server default."
