@@ -1,23 +1,48 @@
 # Language server
 
-Details of `lsp_server.py`. Usage: [README](../README.md).
+The language server `hol-language-server` gives an editor lookups over HOL Light source files. Setup: [README](../README.md).
 
-## Capabilities
+## What it does
 
-- `textDocument/hover`: theorem and definition statements, value types, and modules. No `Help/` pages.
-- `textDocument/definition`: definitions, modules, and the file named by `needs "..."`.
-- `textDocument/documentSymbol` and `workspace/symbol` (first 1000 case-insensitive substring matches).
+- Hover: shows what the word under the cursor is.
+  - A theorem or definition: its statement.
+  - Any other value: its name, and its type when the source writes one.
+  - A module: its name.
+  - It does not show the HOL Light `Help/` pages.
+- Go to Definition: jumps to where a name is defined.
+  - Works for definitions and modules.
+  - On `needs "..."`, it opens the file named.
+- Symbols.
+  - The outline of the open file: every definition and module in it.
+  - Search across all files read: names containing the search text, ignoring case, at most 1000 results.
 
-## Settings and messages
+## Settings
 
-- The server takes the same flags as the MCP server ([configuration.md](configuration.md)). Settings in `initializationOptions` override them.
-- `initializationOptions` is either `{"hol-light": {...}}` or the settings object itself. Absent options are fine.
-- Without `path` or `--hol-path`, the HOL Light directory is `$HOL_LIGHT_DIR`. Without `--workspace`, the workspace is the client's first workspace folder.
-- Settings: `path` (string), `rootPaths` (list of strings), `autoIndex` and `indexWorkspace` (booleans). Any other key or type fails `initialize` with the reason.
-- `initialize` also indexes the core HOL Light files, so a missing or wrong HOL Light directory fails it.
-- `window/showMessage` warnings: once after `initialized` for loads in the workspace that cannot be found, and for an open file whenever the set of its loads that cannot be found changes.
-- Parser warnings (a statement it skipped or misread) and files that are not valid UTF-8 go to stderr, which the client keeps as the server log.
+- The server takes the same flags as the MCP server ([configuration.md](configuration.md)).
+- An editor can also send settings when it starts the server (the LSP `initializationOptions`). These win over the flags.
+  - They may be wrapped as `{"hol-light": {...}}` or sent bare.
+  - `path` (text): the HOL Light directory.
+  - `rootPaths` (list of text): where `needs` paths are searched.
+  - `autoIndex` (true/false): read each file as it is opened or edited. Default true.
+  - `indexWorkspace` (true/false): read every `.ml`/`.hl` file of the workspace at startup. Default true.
+  - Any other setting, or a value of the wrong type, stops startup with the reason.
+- Defaults when nothing is set.
+  - HOL Light directory: `$HOL_LIGHT_DIR`.
+  - Workspace: the first folder open in the editor (`--workspace` overrides it).
+- Startup reads the core HOL Light files, so a missing or wrong HOL Light directory stops it.
+
+## Messages
+
+- Warning pop-ups in the editor.
+  - Once at startup, for files the workspace loads that cannot be found.
+  - For an open file, whenever its list of files that cannot be found changes.
+- The server log (stderr, which the editor keeps).
+  - Statements the parser could not read.
+  - Files that are not valid UTF-8. They are still read, with the bad bytes replaced.
 
 ## Not provided
 
-Completion, diagnostics, execute commands, and the custom REPL requests (`hol-light/statementAt`, `tacticAt`, and the rest).
+- Completion.
+- Diagnostics (error underlines).
+- Editor commands.
+- Anything that needs a running HOL Light, such as sending a statement or tactic to it.

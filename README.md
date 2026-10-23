@@ -27,7 +27,7 @@ Full flag reference: [docs/configuration.md](docs/configuration.md).
 
 ## MCP server
 
-One read-only tool, `definition_source`: the source of a named definition (a tactic, theorem, or any value) and of the definitions it uses. Reference: [docs/tools.md](docs/tools.md).
+One read-only tool, `definition_source`: the source of a named definition (a tactic, theorem, or any value) and of the definitions it uses. Reference: [docs/mcp.md](docs/mcp.md).
 
 Register it with any stdio MCP client. With Claude Code:
 
