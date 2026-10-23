@@ -3,3 +3,14 @@ __pycache__/
 .venv/
 .pytest_cache/
 .ruff_cache/
+
+# Agent-harness files live in _work/, its own repository (_work/README.md).
+# No trailing slash: a symlink to a directory is a file to git.
+.claude
+.agents
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+.codex
+.mcp.json
+_work

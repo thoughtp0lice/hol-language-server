@@ -14,6 +14,9 @@ dependencies = [
 [tool.uv]
 package = false
 
+[tool.ruff]
+extend-exclude = ["_work"]
+
 [tool.ruff.lint]
 select = [
     # pycodestyle
@@ -39,6 +42,7 @@ testpaths = ["tests"]
 
 [tool.pyright]
 include = ["."]
+exclude = ["**/.*", "**/__pycache__", "_work"]
 # The same paths as [tool.pytest.ini_options].
 extraPaths = [".", "tests"]
 typeCheckingMode = "standard"
