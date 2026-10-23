@@ -79,15 +79,32 @@ def create_server(service: HolLanguageService, settings: Settings,
         text_document_sync_kind=lsp.TextDocumentSyncKind.Full,
     )
 
-    # The unresolved loads last shown for each file, so a message repeats only on a change.
-    shown_unresolved: dict[str, list[str]] = {}
+    # Files with missing-load warnings published, so they are cleared once fixed.
+    published: set[str] = set()
 
     def index(ls: LanguageServer, file_path: str, full: bool) -> None:
-        # Indexes the file and its dependencies, and warns about loads that could not be found.
-        names = sorted({dep.name for dep in service.index(file_path, full)})
-        if names and shown_unresolved.get(file_path) != names:
-            _warn(ls, f"{file_path}: loads not found: {', '.join(names)}")
-        shown_unresolved[file_path] = names
+        # Indexes the file and its dependencies, and underlines each load that
+        # cannot be found, in the file and in every file it sees.
+        service.index(file_path, full)
+        for path, missing in service.missing_loads(file_path).items():
+            if not missing and path not in published:
+                continue
+            ls.text_document_publish_diagnostics(lsp.PublishDiagnosticsParams(
+                uri=_uri(path),
+                diagnostics=[
+                    lsp.Diagnostic(
+                        range=_to_lsp_range(load.range),
+                        message=f"File not found: {load.name}",
+                        severity=lsp.DiagnosticSeverity.Warning,
+                        source="hol-language-server",
+                    )
+                    for load in missing
+                ],
+            ))
+            if missing:
+                published.add(path)
+            else:
+                published.discard(path)
 
     def prepare(ls: LanguageServer, uri: str) -> TextDoc:
         # Unchanged files are not parsed again.

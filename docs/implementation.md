@@ -36,7 +36,7 @@ Nothing fails silently.
   - The MCP server stops at startup. The language server fails when the editor starts it.
 - Files named by `needs`, `loads` or `loadt` that cannot be found.
   - MCP: listed in `unresolved_loads` when a call names a `file`, and as a warning at startup.
-  - Language server: warning pop-ups in the editor.
+  - Language server: a warning underline on each file name that cannot be found, and a pop-up at startup.
 - A bad editor setting (unknown name or wrong type), or a search path with an unknown or unset `{...}`: an error.
 - A file or directory that cannot be read: an error, not a skip.
 - Printed as warnings to stderr:

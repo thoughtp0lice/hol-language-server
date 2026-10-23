@@ -40,6 +40,13 @@ class DefinitionTarget:
 
 
 @dataclass
+class MissingLoad:
+    # The file name as written, and where it is written.
+    name: str
+    range: Range
+
+
+@dataclass
 class SourceInfo:
     doc: TextDoc
     start: int
@@ -273,6 +280,17 @@ class HolLanguageService:
             DefinitionTarget(loc.path, loc.range)
             for loc in (found.get_location() for found in [*defs, *mods])
         ]
+
+    def missing_loads(self, file_path: str) -> dict[str, list[MissingLoad]]:
+        """For the file and every file it sees, the loads in it that cannot be
+        found (an empty list when there are none)."""
+        missing: dict[str, list[MissingLoad]] = {}
+        for path in sorted({file_path} | self.database.all_dependencies(file_path)):
+            file = self.database.get_file_index(path)
+            if file is not None:
+                missing[path] = [MissingLoad(dep.name, dep.range)
+                                 for dep in file.dependencies if not dep.is_resolved]
+        return missing
 
     def document_symbols(self, file_path: str) -> list[SymbolInfo]:
         """Definitions and modules of the file, in position order."""

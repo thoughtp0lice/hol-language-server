@@ -13,17 +13,19 @@ from bisect import bisect_right
 from dataclasses import dataclass, field
 from enum import IntEnum
 
-from hol_language_server_core.text import CHAR_LITERAL, Location, Position, location
+from hol_language_server_core.text import CHAR_LITERAL, Location, Position, Range, location
 
 logger = logging.getLogger(__name__)
 
 
 class Dependency:
-    def __init__(self, name: str, hol_light_relative: bool) -> None:
+    def __init__(self, name: str, hol_light_relative: bool, name_range: Range) -> None:
         self.name = name
         # Resolve relative to the HOL Light base directory, not the
         # workspace roots, when the loader is `loads`.
         self.hol_light_relative = hol_light_relative
+        # The quoted file name in the source.
+        self.range = name_range
 
 
 class DefinitionType(IntEnum):
@@ -1040,6 +1042,10 @@ class Parser:
                                 Dependency(
                                     text,
                                     statement_token.get_value(self.text) == "loads",
+                                    Range(
+                                        name_token.get_start_position(self._line_starts),
+                                        name_token.get_end_position(self._line_starts),
+                                    ),
                                 )
                             )
             except ParserError as err:

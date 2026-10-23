@@ -52,7 +52,7 @@ Or in a project's `.mcp.json`:
 
 ## Language server
 
-Hover (theorem statements, value types, modules), Go to Definition (including the file named by `needs "..."`), and document and workspace symbols. Reference: [docs/lsp.md](docs/lsp.md).
+Hover (theorem statements, value types, modules), Go to Definition (including the file named by `needs "..."`), document and workspace symbols, and warnings on loaded files that cannot be found. Reference: [docs/lsp.md](docs/lsp.md).
 
 It speaks LSP over stdio and takes the same flags as the MCP server:
 

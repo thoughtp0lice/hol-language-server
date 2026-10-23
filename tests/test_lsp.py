@@ -174,3 +174,16 @@ def test_definition_jumps_through_a_custom_import(tmp_path: Path):
     [target] = service.definition(doc, Position(1, 9))
     assert target.path == str(tmp_path / "lib.ml")
 
+
+def test_missing_loads_cover_the_files_it_loads(tmp_path: Path):
+    (tmp_path / "a.ml").write_text('needs "gone.ml";;\n')
+    (tmp_path / "main.ml").write_text('needs "a.ml";;\nneeds "nope.ml";;\n')
+    settings = default_settings()
+    settings.hol_path = HOL
+    settings.workspace = str(tmp_path)
+    service = HolLanguageService(settings)
+    path = str(tmp_path / "main.ml")
+    service.index(path, True)
+    missing = {p: [(m.name, m.range.start.line, m.range.start.character) for m in loads]
+               for p, loads in service.missing_loads(path).items() if loads}
+    assert missing == {path: [("nope.ml", 1, 6)], str(tmp_path / "a.ml"): [("gone.ml", 0, 6)]}

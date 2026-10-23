@@ -11,7 +11,7 @@ from hol_language_server_core import util
 from hol_language_server_core.config import DEBUG
 from hol_language_server_core.parser import CustomCommands, Definition, Module, OpenDecl, ParseResult, parse_text
 from hol_language_server_core.parser import Dependency as ParsedDependency
-from hol_language_server_core.text import Location, Position, TextDoc, location
+from hol_language_server_core.text import Location, Position, Range, TextDoc, location
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,10 @@ class Dependency:
     @property
     def name(self) -> str:
         return self._dep.name
+
+    @property
+    def range(self) -> Range:
+        return self._dep.range
 
     def get_location(self) -> Location | None:
         if self.path is None:

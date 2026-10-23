@@ -64,6 +64,12 @@ class LspClient:
         return [n["params"]["message"] for n in self.notifications
                 if n["method"] == "window/showMessage" and n["params"]["type"] == 2]
 
+    def diagnostics(self, path: str) -> list[dict[str, Any]] | None:
+        """The diagnostics last published for the file, or None if none were."""
+        published = [n["params"]["diagnostics"] for n in self.notifications
+                     if n["method"] == "textDocument/publishDiagnostics" and n["params"]["uri"] == uri(path)]
+        return published[-1] if published else None
+
     def notify(self, method: str, params: object) -> None:
         self._send({"jsonrpc": "2.0", "method": method, "params": params})
 
@@ -182,7 +188,19 @@ def test_unresolved_loads_are_shown():
             {"textDocument": {"uri": uri(main), "languageId": "ocaml", "version": 1, "text": text}},
         )
         client.request("textDocument/documentSymbol", {"textDocument": {"uri": uri(main)}})
-        assert client.warnings() == [
-            "Loads not found in the workspace: missing.ml",
-            f"{main}: loads not found: missing.ml",
-        ]
+        assert client.warnings() == ["Loads not found in the workspace: missing.ml"]
+        assert client.diagnostics(main) == [{
+            "range": {"start": {"line": 1, "character": 6}, "end": {"line": 1, "character": 18}},
+            "message": "File not found: missing.ml",
+            "severity": 2,
+            "source": "hol-language-server",
+        }]
+        assert client.diagnostics(os.path.join(PROJECT, "lib", "util.ml")) is None
+        # Fixing the load clears the warning.
+        client.notify(
+            "textDocument/didChange",
+            {"textDocument": {"uri": uri(main), "version": 2},
+             "contentChanges": [{"text": text.replace('needs "missing.ml";;', "")}]},
+        )
+        client.request("textDocument/documentSymbol", {"textDocument": {"uri": uri(main)}})
+        assert client.diagnostics(main) == []

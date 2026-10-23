@@ -15,6 +15,10 @@ The language server `hol-language-server` gives an editor lookups over HOL Light
 - Symbols.
   - The outline of the open file: every definition and module in it.
   - Search across all files read: names containing the search text, ignoring case, at most 1000 results.
+- Warnings on missing files.
+  - A `needs`, `loads` or `loadt` (or custom import) whose file cannot be found gets a warning underline on the file name.
+  - This covers the open file and every file it loads. Those show in the Problems panel.
+  - The underline goes away once the file is found, for example after fixing the name.
 
 ## Settings
 
@@ -34,9 +38,7 @@ The language server `hol-language-server` gives an editor lookups over HOL Light
 
 ## Messages
 
-- Warning pop-ups in the editor.
-  - Once at startup, for files the workspace loads that cannot be found.
-  - For an open file, whenever its list of files that cannot be found changes.
+- A warning pop-up once at startup, for files the workspace loads that cannot be found.
 - The server log (stderr, which the editor keeps).
   - Statements the parser could not read.
   - Files that are not valid UTF-8. They are still read, with the bad bytes replaced.
@@ -44,6 +46,6 @@ The language server `hol-language-server` gives an editor lookups over HOL Light
 ## Not provided
 
 - Completion.
-- Diagnostics (error underlines).
+- Diagnostics other than missing files, such as type errors.
 - Editor commands.
 - Anything that needs a running HOL Light, such as sending a statement or tactic to it.
