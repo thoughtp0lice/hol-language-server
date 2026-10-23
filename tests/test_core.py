@@ -6,18 +6,18 @@ from pathlib import Path
 
 import pytest
 from hol_server_paths import EXAMPLES, HOL, PROJECT
-from core.config import default_settings
-from core.database import Database
-from core.parser import (
+from hol_language_server_core.config import default_settings
+from hol_language_server_core.database import Database
+from hol_language_server_core.parser import (
     DefinitionType,
     OpenDecl,
     Parser,
     TokenType,
     parse_text,
 )
-from core.service import HolLanguageService
-from core.text import TextDoc
-from core.util import difference, filter_map, read_text
+from hol_language_server_core.service import HolLanguageService
+from hol_language_server_core.text import TextDoc
+from hol_language_server_core.util import difference, filter_map, read_text
 
 
 def read_doc(*parts: str) -> TextDoc:
@@ -195,7 +195,7 @@ def test_base_indexing_refuses_a_missing_or_wrong_hol_light_directory(tmp_path: 
 
 
 def test_parser_warns_about_what_it_skips(caplog: pytest.LogCaptureFixture):
-    with caplog.at_level(logging.WARNING, logger="core.parser"):
+    with caplog.at_level(logging.WARNING, logger="hol_language_server_core.parser"):
         parse_text("open 5;;\n", "x.ml")
     assert [r.getMessage() for r in caplog.records] == ["Error: identifier expected x.ml:1:6"]
 
@@ -203,6 +203,6 @@ def test_parser_warns_about_what_it_skips(caplog: pytest.LogCaptureFixture):
 def test_non_utf8_text_is_replaced_with_a_warning(tmp_path: Path, caplog: pytest.LogCaptureFixture):
     path = tmp_path / "latin1.ml"
     path.write_bytes(b"let x = 1;; (* caf\xe9 *)\r\n")
-    with caplog.at_level(logging.WARNING, logger="core.util"):
+    with caplog.at_level(logging.WARNING, logger="hol_language_server_core.util"):
         assert read_text(str(path)) == "let x = 1;; (* caf\ufffd *)\r\n"
     assert "is not valid UTF-8" in caplog.text

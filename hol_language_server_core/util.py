@@ -6,7 +6,7 @@ import re
 import stat
 from collections.abc import Callable, Iterable
 
-from core.text import Position, Range, TextDoc
+from hol_language_server_core.text import Position, Range, TextDoc
 
 logger = logging.getLogger(__name__)
 

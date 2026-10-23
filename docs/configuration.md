@@ -1,6 +1,6 @@
 # Configuration
 
-Every flag of `hol-light-static` (`mcp_server.py`) and of the language server (`lsp_server.py`), which take the same flags. Usage: [README](../README.md).
+Every flag of the MCP server `hol-light-code-mcp` (`mcp_server.py`) and of the language server `hol-language-server` (`lsp_server.py`), which take the same flags. Usage: [README](../README.md).
 
 - HOL Light directory
   - Flag: `--hol-path`.

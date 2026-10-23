@@ -7,18 +7,15 @@ files they load, plus the core HOL Light sources. It evaluates nothing.
 """
 
 import logging
-import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from lsprotocol import types as lsp
+from pygls.lsp.server import LanguageServer
+from pygls.uris import from_fs_path, to_fs_path
 
-from lsprotocol import types as lsp  # noqa: E402
-from pygls.lsp.server import LanguageServer  # noqa: E402
-from pygls.uris import from_fs_path, to_fs_path  # noqa: E402
-
-from core.config import Settings, expand_root_paths, parse_settings, settings_from_options  # noqa: E402
-from core.service import HolLanguageService, SymbolInfo  # noqa: E402
-from core.text import Position as CorePosition, Range as CoreRange, TextDoc  # noqa: E402
+from hol_language_server_core.config import Settings, expand_root_paths, parse_settings, settings_from_options
+from hol_language_server_core.service import HolLanguageService, SymbolInfo
+from hol_language_server_core.text import Position as CorePosition, Range as CoreRange, TextDoc
 
 logger = logging.getLogger(__name__)
 
@@ -194,6 +191,11 @@ def main(argv: list[str] | None = None) -> None:
     create_server(service, settings, workspace_fixed).start_io()
 
 
-if __name__ == "__main__":
+def cli() -> None:
+    # The console script and `python lsp_server.py`: the entry point, so it configures logging.
     logging.basicConfig(stream=sys.stderr)
     main()
+
+
+if __name__ == "__main__":
+    cli()

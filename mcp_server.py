@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static lookup MCP server for HOL Light (hol-light-static).
+"""Static lookup MCP server for HOL Light (hol-light-code-mcp).
 
 Reads the statement and source of a named theorem, definition, or tactic,
 and the names it is built from. Parses files and the files they load with
@@ -9,19 +9,15 @@ needs/loads/loadt, plus the core HOL Light sources. Evaluates nothing.
 import asyncio
 import json
 import logging
-import os
 import sys
+from typing import Annotated
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
+from pydantic import Field
 
-from typing import Annotated  # noqa: E402
-
-from mcp.server.fastmcp import FastMCP  # noqa: E402
-from mcp.types import ToolAnnotations  # noqa: E402
-from pydantic import Field  # noqa: E402
-
-from core.config import Settings, expand_root_paths, parse_settings  # noqa: E402
-from core.service import HolLanguageService, Reference, SymbolInfo, resolve_path  # noqa: E402
+from hol_language_server_core.config import Settings, expand_root_paths, parse_settings
+from hol_language_server_core.service import HolLanguageService, Reference, SymbolInfo, resolve_path
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +37,7 @@ def _clip_short(text: str) -> str:
 
 def create_server(service: HolLanguageService, settings: Settings) -> FastMCP:
     server = FastMCP(
-        "hol-light-static",
+        "hol-light-code-mcp",
         instructions=" ".join(
             [
                 "Static lookup for HOL Light source files (.ml, .hl): read the statement "
@@ -208,6 +204,11 @@ def main(argv: list[str] | None = None) -> None:
     asyncio.run(server.run_stdio_async())
 
 
-if __name__ == "__main__":
+def cli() -> None:
+    # The console script and `python mcp_server.py`: the entry point, so it configures logging.
     logging.basicConfig(stream=sys.stderr)
     main()
+
+
+if __name__ == "__main__":
+    cli()

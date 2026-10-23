@@ -5,11 +5,11 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from core import util
-from core.config import Settings, expand_root_paths
-from core.database import Database, Dependency
-from core.parser import DEFINITION_TYPE_NAMES, OCAML_KEYWORDS, Definition, Module, skip_comments
-from core.text import CHAR_LITERAL, Position, Range, TextDoc
+from hol_language_server_core import util
+from hol_language_server_core.config import Settings, expand_root_paths
+from hol_language_server_core.database import Database, Dependency
+from hol_language_server_core.parser import DEFINITION_TYPE_NAMES, OCAML_KEYWORDS, Definition, Module, skip_comments
+from hol_language_server_core.text import CHAR_LITERAL, Position, Range, TextDoc
 
 _IMPORT_RE = re.compile(r'^\s*(?:needs|loads|loadt)\s*"(.*?)"')
 

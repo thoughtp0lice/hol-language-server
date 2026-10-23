@@ -54,10 +54,10 @@
     "configuration": {
       "title": "HOL Light static lookup",
       "properties": {
-        "hol-light.languageServer.repository": {
+        "hol-light.languageServer.command": {
           "type": "string",
-          "default": "",
-          "description": "The hol-language-server checkout. The client runs its .venv/bin/python on its lsp_server.py."
+          "default": "hol-language-server",
+          "description": "The language server command: a name on PATH or an absolute path."
         },
         "hol-light.path": {
           "type": "string",

@@ -1,7 +1,6 @@
-// VS Code client for lsp_server.py. It starts the server over
+// VS Code client for the hol-language-server command. It starts the server over
 // stdio and passes the hol-light settings as initializationOptions.
 
-const path = require("path");
 const vscode = require("vscode");
 const { LanguageClient } = require("vscode-languageclient/node");
 
@@ -25,18 +24,11 @@ function initializationOptions() {
 }
 
 function createClient() {
-  const repository = vscode.workspace
-    .getConfiguration("hol-light")
-    .get("languageServer.repository");
-  if (!repository) {
-    throw new Error("Set hol-light.languageServer.repository to the hol-language-server checkout.");
-  }
   const server = {
-    command: path.join(repository, ".venv", "bin", "python"),
-    args: [path.join(repository, "lsp_server.py")],
+    command: vscode.workspace.getConfiguration("hol-light").get("languageServer.command"),
   };
   return new LanguageClient(
-    "hol-light-static",
+    "hol-language-server",
     "HOL Light static lookup",
     { run: server, debug: server },
     {

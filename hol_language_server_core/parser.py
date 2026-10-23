@@ -13,7 +13,7 @@ from bisect import bisect_right
 from dataclasses import dataclass
 from enum import IntEnum
 
-from core.text import CHAR_LITERAL, Location, Position, location
+from hol_language_server_core.text import CHAR_LITERAL, Location, Position, location
 
 logger = logging.getLogger(__name__)
 

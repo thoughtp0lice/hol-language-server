@@ -11,8 +11,17 @@ dependencies = [
     "pygls>=2.1.1",
 ]
 
-[tool.uv]
-package = false
+[project.scripts]
+hol-language-server = "lsp_server:cli"
+hol-light-code-mcp = "mcp_server:cli"
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# The two servers are top-level modules beside the package they share.
+only-include = ["hol_language_server_core", "lsp_server.py", "mcp_server.py"]
 
 [tool.ruff]
 extend-exclude = ["_work"]

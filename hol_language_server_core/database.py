@@ -7,11 +7,11 @@ import os
 import re
 from collections.abc import Callable
 
-from core import util
-from core.config import DEBUG
-from core.parser import Definition, Module, OpenDecl, ParseResult, parse_text
-from core.parser import Dependency as ParsedDependency
-from core.text import Location, Position, TextDoc, location
+from hol_language_server_core import util
+from hol_language_server_core.config import DEBUG
+from hol_language_server_core.parser import Definition, Module, OpenDecl, ParseResult, parse_text
+from hol_language_server_core.parser import Dependency as ParsedDependency
+from hol_language_server_core.text import Location, Position, TextDoc, location
 
 logger = logging.getLogger(__name__)
 

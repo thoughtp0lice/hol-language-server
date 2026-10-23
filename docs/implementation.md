@@ -29,7 +29,7 @@ No failure is skipped without a word:
 
 ## Layout
 
-- `core/`: the parser, index, and name-reference search. `service.py` is the API both servers use. Positions sit beside the MCP server's offsets; the parser computes both in one pass.
-- `mcp_server.py`: the MCP server entry point.
-- `lsp_server.py`: the LSP server entry point (pygls, stdio).
+- `hol_language_server_core/`: the parser, index, and name-reference search. `service.py` is the API both servers use. Positions sit beside the MCP server's offsets; the parser computes both in one pass.
+- `mcp_server.py`: the MCP server entry point, installed as the `hol-light-code-mcp` command.
+- `lsp_server.py`: the LSP server entry point (pygls, stdio), installed as the `hol-language-server` command.
 - `tests/`: tests and example files. `examples/hol` is a minimal stand-in for a HOL Light directory.

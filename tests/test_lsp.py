@@ -5,10 +5,10 @@ import os
 
 import pytest
 from hol_server_paths import HOL, PROJECT
-from core.config import default_settings, expand_root_paths, settings_from_options
-from core.service import HolLanguageService
-from core.text import Position, TextDoc
-from core.util import get_word_at_position
+from hol_language_server_core.config import default_settings, expand_root_paths, settings_from_options
+from hol_language_server_core.service import HolLanguageService
+from hol_language_server_core.text import Position, TextDoc
+from hol_language_server_core.util import get_word_at_position
 
 
 def example_service() -> HolLanguageService:
